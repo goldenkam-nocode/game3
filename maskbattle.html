@@ -1,0 +1,1972 @@
+<!DOCTYPE html><html lang="zh-HK"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>口罩對決 - Mask Battle</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #000;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .menu-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a0a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 5vh;
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .menu-screen.hidden {
+            display: none;
+        }
+
+        .title {
+            font-size: 3.5rem;
+            color: #ff6b9d;
+            text-shadow: 0 0 20px #ff6b9d, 0 0 40px #ff6b9d, 0 0 60px #c44569;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            letter-spacing: 0.3rem;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        .title-jp {
+            font-size: 1.3rem;
+            color: #a29bfe;
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.5rem;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 20px #ff6b9d, 0 0 40px #ff6b9d; }
+            to { text-shadow: 0 0 30px #a29bfe, 0 0 60px #a29bfe, 0 0 90px #a29bfe; }
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .input-group label {
+            display: block;
+            color: #ff6b9d;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .input-group input {
+            padding: 0.7rem 1.3rem;
+            font-size: 1.1rem;
+            border: 2px solid #ff6b9d;
+            background: rgba(255, 107, 157, 0.1);
+            color: #fff;
+            border-radius: 25px;
+            outline: none;
+            text-align: center;
+        }
+
+        .input-group input:focus {
+            box-shadow: 0 0 20px #ff6b9d;
+        }
+
+        .character-select {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .character-option {
+            padding: 0.8rem 2rem;
+            font-size: 1.2rem;
+            border: 2px solid #a29bfe;
+            background: transparent;
+            color: #a29bfe;
+            cursor: pointer;
+            border-radius: 25px;
+            transition: all 0.3s;
+        }
+
+        .character-option:hover,
+        .character-option.selected {
+            background: linear-gradient(45deg, #ff6b9d, #a29bfe);
+            color: #fff;
+            border-color: transparent;
+            box-shadow: 0 0 30px #ff6b9d;
+        }
+
+        .difficulty-select {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .difficulty-option {
+            padding: 0.7rem 1.3rem;
+            font-size: 1rem;
+            border: 2px solid #ffeaa7;
+            background: transparent;
+            color: #ffeaa7;
+            cursor: pointer;
+            border-radius: 20px;
+            transition: all 0.3s;
+        }
+
+        .difficulty-option:hover,
+        .difficulty-option.selected {
+            background: #ffeaa7;
+            color: #1a0a2e;
+        }
+
+        .start-btn {
+            padding: 1rem 3rem;
+            font-size: 1.5rem;
+            border: none;
+            background: linear-gradient(45deg, #ff6b9d, #c44569);
+            color: #fff;
+            cursor: pointer;
+            border-radius: 30px;
+            font-weight: bold;
+            transition: all 0.3s;
+            margin-top: 0.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 20px rgba(255, 107, 157, 0.4);
+        }
+
+        .start-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 10px 40px rgba(255, 107, 157, 0.6);
+        }
+
+        .controls-info {
+            color: #888;
+            font-size: 0.85rem;
+            text-align: center;
+            line-height: 1.8;
+            padding: 1rem;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            margin-bottom: 2rem;
+        }
+
+        .hud {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .hud.hidden {
+            display: none;
+        }
+
+        .player-info {
+            color: #ff6b9d;
+            font-size: 1.2rem;
+            text-shadow: 0 0 10px #ff6b9d;
+        }
+
+        .enemy-info {
+            color: #a29bfe;
+            font-size: 1.2rem;
+            text-shadow: 0 0 10px #a29bfe;
+            text-align: right;
+        }
+
+        .score-display {
+            position: absolute;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 2rem;
+            text-shadow: 0 0 20px #fff;
+        }
+
+        .timer {
+            position: absolute;
+            top: 3.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ffeaa7;
+            font-size: 1.5rem;
+            text-shadow: 0 0 10px #ffeaa7;
+        }
+
+        .health-bar {
+            width: 200px;
+            height: 20px;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid #ff6b9d;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .health-bar.enemy {
+            border-color: #a29bfe;
+        }
+
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b9d, #fd79a8);
+            transition: width 0.3s;
+            border-radius: 8px;
+        }
+
+        .health-fill.enemy {
+            background: linear-gradient(90deg, #a29bfe, #6c5ce7);
+        }
+
+        .pause-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .pause-menu.hidden {
+            display: none;
+        }
+
+        .pause-title {
+            font-size: 3rem;
+            color: #ffeaa7;
+            margin-bottom: 2rem;
+            text-shadow: 0 0 20px #ffeaa7;
+        }
+
+        .pause-stats {
+            color: #fff;
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            line-height: 2;
+        }
+
+        .pause-btn {
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            margin: 0.5rem;
+            border: 2px solid #ff6b9d;
+            background: transparent;
+            color: #ff6b9d;
+            cursor: pointer;
+            border-radius: 25px;
+            transition: all 0.3s;
+        }
+
+        .pause-btn:hover {
+            background: #ff6b9d;
+            color: #fff;
+        }
+
+        .round-announcement {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem;
+            color: #fff;
+            text-shadow: 0 0 30px #ff6b9d, 0 0 60px #a29bfe;
+            z-index: 150;
+            animation: fadeInOut 2s ease-in-out;
+        }
+
+        .round-announcement.hidden {
+            display: none;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 250;
+        }
+
+        .game-over.hidden {
+            display: none;
+        }
+
+        .game-over-title {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: glow 1s ease-in-out infinite alternate;
+        }
+
+        .game-over-title.win {
+            color: #ff6b9d;
+        }
+
+        .game-over-title.lose {
+            color: #e74c3c;
+        }
+
+        .final-score {
+            font-size: 2rem;
+            color: #fff;
+            margin-bottom: 2rem;
+        }
+
+        .action-indicator {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 1.2rem;
+            opacity: 0.9;
+            z-index: 60;
+            background: rgba(0,0,0,0.5);
+            padding: 0.5rem 1.5rem;
+            border-radius: 20px;
+            border: 1px solid #ff6b9d;
+        }
+
+        .action-indicator.hidden {
+            display: none;
+        }
+
+        .distance-indicator {
+            position: fixed;
+            bottom: 130px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ffeaa7;
+            font-size: 1rem;
+            z-index: 60;
+        }
+
+        .distance-indicator.hidden {
+            display: none;
+        }
+
+        .enemy-state-indicator {
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ff4757;
+            font-size: 1.5rem;
+            z-index: 60;
+            text-shadow: 0 0 10px #ff4757;
+        }
+
+        .enemy-state-indicator.hidden {
+            display: none;
+        }
+
+        .round-result {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            color: #fff;
+            text-shadow: 0 0 30px #ff6b9d;
+            z-index: 160;
+            text-align: center;
+        }
+
+        .round-result.hidden {
+            display: none;
+        }
+
+        .section-label {
+            color: #ff6b9d;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .section-label.yellow {
+            color: #ffeaa7;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Main Menu -->
+    <div id="mainMenu" class="menu-screen">
+        <h1 class="title">口罩對決</h1>
+        <p class="title-jp">マスクバトル</p>
+        
+        <div class="input-group">
+            <label>✧ 輸入玩家名稱 ✧</label>
+            <input type="text" id="playerName" placeholder="你的名字" maxlength="10" value="玩家">
+        </div>
+
+        <p class="section-label">✦ 選擇角色 ✦</p>
+        <div class="character-select">
+            <button class="character-option selected" data-gender="male">♂ 男</button>
+            <button class="character-option" data-gender="female">♀ 女</button>
+        </div>
+
+        <p class="section-label yellow">✦ 選擇難度 ✦</p>
+        <div class="difficulty-select">
+            <button class="difficulty-option selected" data-diff="easy">簡單</button>
+            <button class="difficulty-option" data-diff="normal">普通</button>
+            <button class="difficulty-option" data-diff="hard">困難</button>
+        </div>
+
+        <button class="start-btn" id="startBtn">✦ 開始對戰 ✦</button>
+
+        <div class="controls-info">
+            <p>【操控說明】</p>
+            <p>方向鍵 ↑↓：前進/後退 | ←→：左右移動</p>
+            <p>A/D：左右閃避 | S：蹲下閃避</p>
+            <p>W：格擋 | Space：攻擊 | Esc：暫停</p>
+        </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud" class="hud hidden">
+        <div class="player-info">
+            <div id="playerNameDisplay">玩家</div>
+            <div class="health-bar">
+                <div class="health-fill" id="playerHealth" style="width: 100%"></div>
+            </div>
+        </div>
+        
+        <div class="score-display" id="scoreDisplay">0 - 0</div>
+        <div class="timer" id="timer">60</div>
+        
+        <div class="enemy-info">
+            <div id="enemyNameDisplay">對手</div>
+            <div class="health-bar enemy">
+                <div class="health-fill enemy" id="enemyHealth" style="width: 100%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enemy State Indicator -->
+    <div id="enemyStateIndicator" class="enemy-state-indicator hidden"></div>
+
+    <!-- Distance Indicator -->
+    <div id="distanceIndicator" class="distance-indicator hidden">距離: 3.0m</div>
+
+    <!-- Action Indicator -->
+    <div id="actionIndicator" class="action-indicator hidden"></div>
+
+    <!-- Round Announcement -->
+    <div id="roundAnnouncement" class="round-announcement hidden"></div>
+
+    <!-- Round Result -->
+    <div id="roundResult" class="round-result hidden"></div>
+
+    <!-- Pause Menu -->
+    <div id="pauseMenu" class="pause-menu hidden">
+        <h2 class="pause-title">⏸ 暫停</h2>
+        <div class="pause-stats" id="pauseStats">
+            目前戰績<br>
+            玩家: 0 勝 | 電腦: 0 勝
+        </div>
+        <button class="pause-btn" id="resumeBtn">繼續遊戲</button>
+        <button class="pause-btn" id="quitBtn">離開遊戲</button>
+    </div>
+
+    <!-- Game Over -->
+    <div id="gameOver" class="game-over hidden">
+        <h1 class="game-over-title" id="gameOverTitle">勝利！</h1>
+        <div class="final-score" id="finalScore">最終比分: 2 - 0</div>
+        <button class="pause-btn" id="restartBtn">重新開始</button>
+        <button class="pause-btn" id="menuBtn">返回主選單</button>
+    </div>
+
+    <script>
+        // Game State
+        const gameState = {
+            screen: 'menu',
+            playerName: '玩家',
+            playerGender: 'male',
+            playerScore: 0,
+            enemyScore: 0,
+            currentRound: 1,
+            roundTime: 60,
+            playerMaskHealth: 100,
+            enemyMaskHealth: 100,
+            isPaused: false,
+            difficulty: 'easy',
+            enemyGender: 'male',
+            roundEnding: false
+        };
+
+        // Difficulty settings
+        const difficultySettings = {
+            easy: {
+                enemyReactionRate: 0.15,
+                enemyAttackCooldown: 90,
+                enemyMoveSpeed: 1.5,
+                enemyDamage: 8,
+                playerDamage: 20,
+                enemyBlockChance: 0.2,
+                enemyDodgeChance: 0.1
+            },
+            normal: {
+                enemyReactionRate: 0.35,
+                enemyAttackCooldown: 60,
+                enemyMoveSpeed: 2.5,
+                enemyDamage: 12,
+                playerDamage: 15,
+                enemyBlockChance: 0.4,
+                enemyDodgeChance: 0.25
+            },
+            hard: {
+                enemyReactionRate: 0.6,
+                enemyAttackCooldown: 40,
+                enemyMoveSpeed: 3.5,
+                enemyDamage: 15,
+                playerDamage: 12,
+                enemyBlockChance: 0.6,
+                enemyDodgeChance: 0.4
+            }
+        };
+
+        // 3D Positions
+        const player = {
+            x: 0,
+            y: 0,
+            z: 0,
+            state: 'idle',
+            stateTimer: 0,
+            attackCooldown: 0,
+            dodgeCooldown: 0,
+            animFrame: 0
+        };
+
+        const enemy = {
+            x: 0,
+            y: 0,
+            z: -8,
+            state: 'idle',
+            stateTimer: 0,
+            attackCooldown: 0,
+            animFrame: 0,
+            aiState: 'approach',
+            targetX: 0,
+            thinkTimer: 0
+        };
+
+        // Camera
+        const camera = {
+            x: 0,
+            y: 2,
+            z: 5,
+            fov: 60
+        };
+
+        // Input State
+        const keys = {};
+
+        // Scene
+        let currentScene = 'sea';
+        const sceneThemes = {
+            sea: { 
+                skyTop: '#87ceeb', 
+                skyBottom: '#1e90ff', 
+                ground: '#0077be',
+                accent: '#00ffff',
+                name: '海洋戰場'
+            },
+            land: { 
+                skyTop: '#ff7e5f', 
+                skyBottom: '#feb47b', 
+                ground: '#8b4513',
+                accent: '#ffd700',
+                name: '大地戰場'
+            },
+            air: { 
+                skyTop: '#0f0c29', 
+                skyBottom: '#302b63', 
+                ground: '#24243e',
+                accent: '#ff6b9d',
+                name: '天空戰場'
+            }
+        };
+
+        // Enemy Names
+        const enemyNames = ['影山零', '神崎翔', '白銀凜', '黑崎蓮', '緋村劍', '蒼月夜'];
+
+        // Canvas
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // DOM Elements
+        const mainMenu = document.getElementById('mainMenu');
+        const hud = document.getElementById('hud');
+        const pauseMenu = document.getElementById('pauseMenu');
+        const gameOver = document.getElementById('gameOver');
+        const roundAnnouncement = document.getElementById('roundAnnouncement');
+        const roundResult = document.getElementById('roundResult');
+        const actionIndicator = document.getElementById('actionIndicator');
+        const distanceIndicator = document.getElementById('distanceIndicator');
+        const enemyStateIndicator = document.getElementById('enemyStateIndicator');
+
+        // Initialize
+        function init() {
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            setupEventListeners();
+            gameLoop();
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function setupEventListeners() {
+            document.querySelectorAll('.character-option').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.character-option').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    gameState.playerGender = btn.dataset.gender;
+                });
+            });
+
+            document.querySelectorAll('.difficulty-option').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.difficulty-option').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    gameState.difficulty = btn.dataset.diff;
+                });
+            });
+
+            document.getElementById('startBtn').addEventListener('click', startGame);
+            document.getElementById('resumeBtn').addEventListener('click', resumeGame);
+            document.getElementById('quitBtn').addEventListener('click', quitToMenu);
+            document.getElementById('restartBtn').addEventListener('click', restartGame);
+            document.getElementById('menuBtn').addEventListener('click', quitToMenu);
+
+            window.addEventListener('keydown', (e) => {
+                keys[e.code] = true;
+                
+                if (e.code === 'Escape') {
+                    if (gameState.screen === 'playing') {
+                        pauseGame();
+                    } else if (gameState.screen === 'paused') {
+                        resumeGame();
+                    }
+                }
+                
+                if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+                    e.preventDefault();
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                keys[e.code] = false;
+            });
+        }
+
+        function startGame() {
+            gameState.playerName = document.getElementById('playerName').value || '玩家';
+            gameState.playerScore = 0;
+            gameState.enemyScore = 0;
+            gameState.currentRound = 1;
+            gameState.enemyGender = Math.random() > 0.5 ? 'male' : 'female';
+            
+            document.getElementById('playerNameDisplay').textContent = gameState.playerName;
+            document.getElementById('enemyNameDisplay').textContent = enemyNames[Math.floor(Math.random() * enemyNames.length)];
+            
+            mainMenu.classList.add('hidden');
+            hud.classList.remove('hidden');
+            actionIndicator.classList.remove('hidden');
+            distanceIndicator.classList.remove('hidden');
+            enemyStateIndicator.classList.remove('hidden');
+            
+            startRound();
+        }
+
+        function startRound() {
+            const scenes = ['sea', 'land', 'air'];
+            currentScene = scenes[Math.floor(Math.random() * scenes.length)];
+            
+            gameState.roundTime = 60;
+            gameState.playerMaskHealth = 100;
+            gameState.enemyMaskHealth = 100;
+            gameState.screen = 'playing';
+            gameState.roundEnding = false;
+            
+            // Reset player
+            player.x = 0;
+            player.y = 0;
+            player.z = 0;
+            player.state = 'idle';
+            player.stateTimer = 0;
+            player.attackCooldown = 0;
+            
+            // Reset enemy
+            enemy.x = 0;
+            enemy.y = 0;
+            enemy.z = -12;
+            enemy.state = 'idle';
+            enemy.stateTimer = 0;
+            enemy.attackCooldown = 60;
+            enemy.aiState = 'approach';
+            enemy.thinkTimer = 0;
+            
+            updateHUD();
+            showAnnouncement(`第 ${gameState.currentRound} 局\n${sceneThemes[currentScene].name}`);
+        }
+
+        function showAnnouncement(text) {
+            roundAnnouncement.innerHTML = text.replace('\n', '<br>');
+            roundAnnouncement.classList.remove('hidden');
+            setTimeout(() => {
+                roundAnnouncement.classList.add('hidden');
+            }, 2000);
+        }
+
+        function showRoundResult(text) {
+            roundResult.innerHTML = text;
+            roundResult.classList.remove('hidden');
+            setTimeout(() => {
+                roundResult.classList.add('hidden');
+                checkGameEnd();
+            }, 2000);
+        }
+
+        function pauseGame() {
+            gameState.screen = 'paused';
+            document.getElementById('pauseStats').innerHTML = `
+                目前戰績<br>
+                ${gameState.playerName}: ${gameState.playerScore} 勝 | 電腦: ${gameState.enemyScore} 勝
+            `;
+            pauseMenu.classList.remove('hidden');
+        }
+
+        function resumeGame() {
+            gameState.screen = 'playing';
+            pauseMenu.classList.add('hidden');
+        }
+
+        function quitToMenu() {
+            gameState.screen = 'menu';
+            pauseMenu.classList.add('hidden');
+            gameOver.classList.add('hidden');
+            hud.classList.add('hidden');
+            actionIndicator.classList.add('hidden');
+            distanceIndicator.classList.add('hidden');
+            enemyStateIndicator.classList.add('hidden');
+            mainMenu.classList.remove('hidden');
+        }
+
+        function restartGame() {
+            gameOver.classList.add('hidden');
+            hud.classList.remove('hidden');
+            actionIndicator.classList.remove('hidden');
+            distanceIndicator.classList.remove('hidden');
+            enemyStateIndicator.classList.remove('hidden');
+            gameState.playerScore = 0;
+            gameState.enemyScore = 0;
+            gameState.currentRound = 1;
+            startRound();
+        }
+
+        function endRound(winner) {
+            if (gameState.roundEnding) return;
+            gameState.roundEnding = true;
+            
+            if (winner === 'player') {
+                gameState.playerScore++;
+                showRoundResult('✨ 口罩撕下！✨<br>你贏了這局！');
+            } else if (winner === 'enemy') {
+                gameState.enemyScore++;
+                showRoundResult('💔 口罩被撕！<br>對手贏了這局！');
+            } else {
+                // Time up - compare health
+                if (gameState.playerMaskHealth > gameState.enemyMaskHealth) {
+                    gameState.playerScore++;
+                    showRoundResult('⏰ 時間到！<br>你的口罩更完整，你贏了！');
+                } else if (gameState.enemyMaskHealth > gameState.playerMaskHealth) {
+                    gameState.enemyScore++;
+                    showRoundResult('⏰ 時間到！<br>對手的口罩更完整，對手贏了！');
+                } else {
+                    showRoundResult('⏰ 時間到！<br>平手！');
+                    checkGameEnd();
+                    return;
+                }
+            }
+        }
+
+        function checkGameEnd() {
+            updateHUD();
+            
+            if (gameState.playerScore >= 2) {
+                showGameOver(true);
+            } else if (gameState.enemyScore >= 2) {
+                showGameOver(false);
+            } else {
+                gameState.currentRound++;
+                setTimeout(startRound, 500);
+            }
+        }
+
+        function showGameOver(playerWon) {
+            gameState.screen = 'gameOver';
+            const title = document.getElementById('gameOverTitle');
+            title.textContent = playerWon ? '🏆 勝利！' : '💀 落敗！';
+            title.className = 'game-over-title ' + (playerWon ? 'win' : 'lose');
+            document.getElementById('finalScore').textContent = 
+                `最終比分: ${gameState.playerName} ${gameState.playerScore} - ${gameState.enemyScore} 電腦`;
+            gameOver.classList.remove('hidden');
+            hud.classList.add('hidden');
+            actionIndicator.classList.add('hidden');
+            distanceIndicator.classList.add('hidden');
+            enemyStateIndicator.classList.add('hidden');
+        }
+
+        function updateHUD() {
+            document.getElementById('scoreDisplay').textContent = 
+                `${gameState.playerScore} - ${gameState.enemyScore}`;
+            document.getElementById('timer').textContent = Math.ceil(gameState.roundTime);
+            document.getElementById('playerHealth').style.width = gameState.playerMaskHealth + '%';
+            document.getElementById('enemyHealth').style.width = gameState.enemyMaskHealth + '%';
+        }
+
+        // Calculate distance
+        function getDistance() {
+            return Math.sqrt(
+                Math.pow(player.x - enemy.x, 2) +
+                Math.pow(player.y - enemy.y, 2) +
+                Math.pow(player.z - enemy.z, 2)
+            );
+        }
+
+        // Game Loop
+        let lastTime = 0;
+        let timerAccumulator = 0;
+
+        function gameLoop(currentTime = 0) {
+            const deltaTime = Math.min((currentTime - lastTime) / 1000, 0.1);
+            lastTime = currentTime;
+
+            if (gameState.screen === 'playing' && !gameState.roundEnding) {
+                update(deltaTime);
+            }
+
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function update(deltaTime) {
+            // Update Timer
+            timerAccumulator += deltaTime;
+            if (timerAccumulator >= 1) {
+                gameState.roundTime--;
+                timerAccumulator = 0;
+                updateHUD();
+                
+                if (gameState.roundTime <= 0) {
+                    endRound(null);
+                    return;
+                }
+            }
+
+            updatePlayer(deltaTime);
+            updateEnemyAI(deltaTime);
+            checkCombat();
+            updateCamera();
+            updateIndicators();
+            
+            player.animFrame += deltaTime * 10;
+            enemy.animFrame += deltaTime * 10;
+        }
+
+        function updatePlayer(deltaTime) {
+            const moveSpeed = 4;
+            const zMoveSpeed = 5;
+            
+            if (player.attackCooldown > 0) player.attackCooldown -= deltaTime * 60;
+            if (player.dodgeCooldown > 0) player.dodgeCooldown -= deltaTime * 60;
+            if (player.stateTimer > 0) player.stateTimer -= deltaTime * 60;
+            
+            if (player.stateTimer <= 0 && player.state !== 'idle') {
+                player.state = 'idle';
+                player.y = 0;
+            }
+
+            // Movement
+            if (keys['ArrowUp']) {
+                player.z -= zMoveSpeed * deltaTime;
+            }
+            if (keys['ArrowDown']) {
+                player.z += zMoveSpeed * deltaTime;
+            }
+            if (keys['ArrowLeft']) {
+                player.x -= moveSpeed * deltaTime;
+            }
+            if (keys['ArrowRight']) {
+                player.x += moveSpeed * deltaTime;
+            }
+            
+            player.x = Math.max(-6, Math.min(6, player.x));
+            player.z = Math.max(-15, Math.min(5, player.z));
+
+            // Actions
+            if (player.stateTimer <= 0) {
+                if (keys['KeyA'] && !keys['KeyW'] && player.dodgeCooldown <= 0) {
+                    player.state = 'dodgeLeft';
+                    player.stateTimer = 20;
+                    player.dodgeCooldown = 25;
+                    player.x -= 1.5;
+                } else if (keys['KeyD'] && !keys['KeyW'] && player.dodgeCooldown <= 0) {
+                    player.state = 'dodgeRight';
+                    player.stateTimer = 20;
+                    player.dodgeCooldown = 25;
+                    player.x += 1.5;
+                } else if (keys['KeyS']) {
+                    player.state = 'duck';
+                    player.stateTimer = 10;
+                    player.y = -0.5;
+                } else if (keys['KeyW']) {
+                    if (keys['KeyA']) {
+                        player.state = 'blockLeft';
+                    } else if (keys['KeyD']) {
+                        player.state = 'blockRight';
+                    } else {
+                        player.state = 'blockBoth';
+                    }
+                    player.stateTimer = 5;
+                } else if (keys['Space'] && player.attackCooldown <= 0) {
+                    player.state = 'attack';
+                    player.stateTimer = 30;
+                    player.attackCooldown = 35;
+                }
+            }
+            
+            player.x = Math.max(-6, Math.min(6, player.x));
+        }
+
+        function updateEnemyAI(deltaTime) {
+            const settings = difficultySettings[gameState.difficulty];
+            
+            if (enemy.attackCooldown > 0) enemy.attackCooldown -= deltaTime * 60;
+            if (enemy.stateTimer > 0) enemy.stateTimer -= deltaTime * 60;
+            if (enemy.thinkTimer > 0) enemy.thinkTimer -= deltaTime * 60;
+            
+            if (enemy.stateTimer <= 0 && enemy.state !== 'idle' && enemy.state !== 'walking') {
+                enemy.state = 'idle';
+                enemy.y = 0;
+            }
+
+            const dist = getDistance();
+            const dx = player.x - enemy.x;
+            const dz = player.z - enemy.z;
+
+            // Simple AI based on difficulty
+            switch(enemy.aiState) {
+                case 'approach':
+                    enemy.state = 'walking';
+                    
+                    // Move towards player slowly
+                    if (dz > 0) {
+                        enemy.z += settings.enemyMoveSpeed * deltaTime;
+                    }
+                    
+                    // Track player X loosely
+                    if (Math.abs(dx) > 1) {
+                        enemy.x += Math.sign(dx) * settings.enemyMoveSpeed * 0.5 * deltaTime;
+                    }
+                    
+                    // Attack when close
+                    if (dist < 4.5 && enemy.thinkTimer <= 0) {
+                        enemy.aiState = 'thinking';
+                        enemy.thinkTimer = 30 + Math.random() * 30;
+                    }
+                    break;
+                    
+                case 'thinking':
+                    enemy.state = 'idle';
+                    if (enemy.thinkTimer <= 0) {
+                        // Decide action
+                        if (dist < 4.5 && enemy.attackCooldown <= 0) {
+                            enemy.aiState = 'attack';
+                        } else if (dist > 5) {
+                            enemy.aiState = 'approach';
+                        } else {
+                            // Random strafe or wait
+                            if (Math.random() < 0.3) {
+                                enemy.aiState = 'strafe';
+                                enemy.targetX = enemy.x + (Math.random() > 0.5 ? 2 : -2);
+                            } else {
+                                enemy.thinkTimer = 20 + Math.random() * 20;
+                            }
+                        }
+                    }
+                    break;
+                    
+                case 'attack':
+                    if (enemy.stateTimer <= 0 && enemy.attackCooldown <= 0) {
+                        enemy.state = 'attack';
+                        enemy.stateTimer = 35;
+                        enemy.attackCooldown = settings.enemyAttackCooldown;
+                        enemy.aiState = 'recover';
+                        enemy.thinkTimer = 40;
+                    }
+                    break;
+                    
+                case 'recover':
+                    if (enemy.thinkTimer <= 0) {
+                        if (dist > 5) {
+                            enemy.aiState = 'approach';
+                        } else {
+                            enemy.aiState = 'thinking';
+                            enemy.thinkTimer = 20;
+                        }
+                    }
+                    break;
+                    
+                case 'strafe':
+                    enemy.state = 'walking';
+                    const strafeDir = Math.sign(enemy.targetX - enemy.x);
+                    enemy.x += strafeDir * settings.enemyMoveSpeed * deltaTime;
+                    
+                    if (Math.abs(enemy.x - enemy.targetX) < 0.3 || Math.abs(enemy.x) > 5) {
+                        enemy.aiState = 'thinking';
+                        enemy.thinkTimer = 15;
+                    }
+                    break;
+            }
+
+            // React to player attacks (based on difficulty)
+            if (player.state === 'attack' && player.stateTimer > 20 && dist < 5) {
+                if (enemy.state === 'idle' || enemy.state === 'walking') {
+                    const reaction = Math.random();
+                    if (reaction < settings.enemyBlockChance) {
+                        enemy.state = 'blockBoth';
+                        enemy.stateTimer = 25;
+                    } else if (reaction < settings.enemyBlockChance + settings.enemyDodgeChance) {
+                        enemy.state = Math.random() > 0.5 ? 'dodgeLeft' : 'dodgeRight';
+                        enemy.stateTimer = 20;
+                        enemy.x += enemy.state === 'dodgeLeft' ? -1.5 : 1.5;
+                    }
+                }
+            }
+
+            // Keep in bounds
+            enemy.x = Math.max(-5, Math.min(5, enemy.x));
+            enemy.z = Math.max(player.z - 15, Math.min(player.z + 2, enemy.z));
+        }
+
+        function updateCamera() {
+            camera.x = player.x * 0.3;
+            camera.z = player.z + 8;
+            camera.y = 2.5 + player.y * 0.5;
+        }
+
+        function checkCombat() {
+            const dist = getDistance();
+            const attackRange = 4.5;
+            const settings = difficultySettings[gameState.difficulty];
+
+            // Player attacks enemy
+            if (player.state === 'attack' && player.stateTimer > 15 && player.stateTimer < 22 && dist < attackRange) {
+                let hit = true;
+                let damage = settings.playerDamage + Math.random() * 5;
+                
+                if (enemy.state === 'dodgeLeft' || enemy.state === 'dodgeRight') {
+                    hit = false;
+                } else if (enemy.state === 'duck') {
+                    hit = Math.random() > 0.6;
+                } else if (enemy.state.startsWith('block')) {
+                    hit = Math.random() > 0.5;
+                    damage *= 0.4;
+                }
+                
+                if (hit) {
+                    gameState.enemyMaskHealth -= damage;
+                    enemy.z -= 0.3;
+                    updateHUD();
+                    
+                    if (gameState.enemyMaskHealth <= 0) {
+                        gameState.enemyMaskHealth = 0;
+                        endRound('player');
+                    }
+                }
+                player.stateTimer = 14;
+            }
+
+            // Enemy attacks player
+            if (enemy.state === 'attack' && enemy.stateTimer > 15 && enemy.stateTimer < 22 && dist < attackRange) {
+                let hit = true;
+                let damage = settings.enemyDamage + Math.random() * 4;
+                
+                if (player.state === 'dodgeLeft' || player.state === 'dodgeRight') {
+                    hit = false;
+                } else if (player.state === 'duck') {
+                    hit = Math.random() > 0.5;
+                } else if (player.state.startsWith('block')) {
+                    hit = Math.random() > 0.4;
+                    damage *= 0.3;
+                }
+                
+                if (hit) {
+                    gameState.playerMaskHealth -= damage;
+                    updateHUD();
+                    
+                    if (gameState.playerMaskHealth <= 0) {
+                        gameState.playerMaskHealth = 0;
+                        endRound('enemy');
+                    }
+                }
+                enemy.stateTimer = 14;
+            }
+        }
+
+        function updateIndicators() {
+            // Player action
+            let actionText = '';
+            switch(player.state) {
+                case 'dodgeLeft': actionText = '← 左閃避'; break;
+                case 'dodgeRight': actionText = '右閃避 →'; break;
+                case 'duck': actionText = '↓ 蹲下'; break;
+                case 'blockBoth': actionText = '🛡 雙手格擋'; break;
+                case 'blockLeft': actionText = '🛡 左手格擋'; break;
+                case 'blockRight': actionText = '🛡 右手格擋'; break;
+                case 'attack': actionText = '⚔ 攻擊！'; break;
+                default: actionText = '待機中';
+            }
+            actionIndicator.textContent = actionText;
+            
+            // Distance
+            const dist = getDistance();
+            distanceIndicator.textContent = `距離: ${dist.toFixed(1)}m`;
+            distanceIndicator.style.color = dist < 4 ? '#ff6b9d' : '#ffeaa7';
+            
+            // Enemy state
+            let enemyText = '';
+            switch(enemy.aiState) {
+                case 'approach': enemyText = '⚡ 敵人逼近中'; break;
+                case 'thinking': enemyText = '🤔 敵人觀察中'; break;
+                case 'attack': enemyText = '💢 準備攻擊'; break;
+                case 'strafe': enemyText = '↔ 敵人移動'; break;
+                case 'recover': enemyText = '...'; break;
+            }
+            if (enemy.state === 'attack') {
+                enemyText = '🔥 敵人攻擊！';
+            }
+            enemyStateIndicator.textContent = enemyText;
+        }
+
+        // 3D to 2D projection
+        function project(x, y, z) {
+            const relZ = camera.z - z;
+            if (relZ < 0.5) return { x: canvas.width / 2, y: canvas.height / 2, scale: 0, visible: false };
+            
+            const fovScale = Math.tan((camera.fov / 2) * Math.PI / 180);
+            const scale = (canvas.height / 2) / (relZ * fovScale);
+            
+            const screenX = canvas.width / 2 + (x - camera.x) * scale;
+            const screenY = canvas.height / 2 - (y - camera.y) * scale + canvas.height * 0.15;
+            
+            return { 
+                x: screenX, 
+                y: screenY, 
+                scale: scale / 150,
+                visible: relZ > 0.5 
+            };
+        }
+
+        // Rendering
+        function render() {
+            const theme = sceneThemes[currentScene];
+            
+            // Sky gradient
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            skyGradient.addColorStop(0, theme.skyTop);
+            skyGradient.addColorStop(1, theme.skyBottom);
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (gameState.screen === 'menu') return;
+
+            drawScene(theme);
+            drawAnimeCharacter(enemy, false, theme);
+            drawPlayerBack(player, theme);
+            drawEffects(theme);
+        }
+
+        function drawScene(theme) {
+            const horizonY = canvas.height * 0.4;
+            
+            // Ground
+            ctx.fillStyle = theme.ground;
+            ctx.beginPath();
+            ctx.moveTo(0, horizonY);
+            ctx.lineTo(canvas.width, horizonY);
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.lineTo(0, canvas.height);
+            ctx.fill();
+
+            // Grid
+            ctx.strokeStyle = theme.accent;
+            ctx.globalAlpha = 0.3;
+            ctx.lineWidth = 1;
+            
+            for (let i = 0; i < 20; i++) {
+                const y = horizonY + Math.pow(i, 1.4) * 12;
+                if (y > canvas.height) break;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+            
+            const vanishX = canvas.width / 2;
+            for (let i = -15; i <= 15; i++) {
+                ctx.beginPath();
+                ctx.moveTo(vanishX + i * 3, horizonY);
+                ctx.lineTo(vanishX + i * 200, canvas.height);
+                ctx.stroke();
+            }
+            
+            ctx.globalAlpha = 1;
+
+            if (currentScene === 'air') {
+                ctx.fillStyle = '#fff';
+                for (let s = 0; s < 50; s++) {
+                    const sx = (s * 137.5) % canvas.width;
+                    const sy = (s * 73.7) % (horizonY - 50);
+                    const size = 1 + Math.sin(Date.now() / 500 + s) * 0.5;
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        function drawPlayerBack(char, theme) {
+            const pos = project(char.x, char.y, char.z);
+            if (!pos.visible) return;
+            
+            // 體積增加一倍：4.4 -> 原本是 2.2
+            const baseScale = pos.scale * 4.4;
+            if (baseScale < 0.1) return;
+
+            const gender = gameState.playerGender;
+            const primaryColor = '#ff6b9d';
+            const hairColor = gender === 'male' ? '#2d3436' : '#fdcb6e';
+            
+            ctx.save();
+            ctx.translate(pos.x, pos.y);
+            
+            const size = 100 * baseScale;
+            
+            let offsetX = 0, offsetY = 0, bodyTilt = 0;
+            switch(char.state) {
+                case 'dodgeLeft': offsetX = -30 * baseScale; bodyTilt = -0.15; break;
+                case 'dodgeRight': offsetX = 30 * baseScale; bodyTilt = 0.15; break;
+                case 'duck': offsetY = 40 * baseScale; break;
+                case 'attack': bodyTilt = -0.1; break;
+            }
+            
+            ctx.translate(offsetX, offsetY);
+            ctx.rotate(bodyTilt);
+
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath();
+            ctx.ellipse(0, size * 0.9, size * 0.35, size * 0.08, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Legs
+            ctx.fillStyle = '#1a1a2e';
+            const legW = size * 0.12;
+            const legH = size * 0.4;
+            ctx.fillRect(-size * 0.15, size * 0.4, legW, legH);
+            ctx.fillRect(size * 0.03, size * 0.4, legW, legH);
+            ctx.fillStyle = primaryColor;
+            ctx.fillRect(-size * 0.15 + 2, size * 0.5, 3, legH * 0.5);
+            ctx.fillRect(size * 0.03 + legW - 5, size * 0.5, 3, legH * 0.5);
+
+            // Body
+            ctx.fillStyle = '#1a1a2e';
+            ctx.beginPath();
+            if (gender === 'female') {
+                ctx.moveTo(-size * 0.2, size * 0.05);
+                ctx.quadraticCurveTo(-size * 0.22, size * 0.2, -size * 0.18, size * 0.42);
+                ctx.lineTo(size * 0.18, size * 0.42);
+                ctx.quadraticCurveTo(size * 0.22, size * 0.2, size * 0.2, size * 0.05);
+                ctx.closePath();
+            } else {
+                ctx.moveTo(-size * 0.22, size * 0.05);
+                ctx.lineTo(-size * 0.18, size * 0.42);
+                ctx.lineTo(size * 0.18, size * 0.42);
+                ctx.lineTo(size * 0.22, size * 0.05);
+                ctx.closePath();
+            }
+            ctx.fill();
+            
+            ctx.strokeStyle = primaryColor;
+            ctx.lineWidth = 3;
+            ctx.shadowColor = primaryColor;
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.moveTo(0, size * 0.08);
+            ctx.lineTo(0, size * 0.35);
+            ctx.moveTo(-size * 0.1, size * 0.2);
+            ctx.lineTo(size * 0.1, size * 0.2);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Arms
+            const armW = size * 0.08;
+            const armL = size * 0.32;
+            let leftArmAngle = 0.3;
+            let rightArmAngle = -0.3;
+            
+            switch(char.state) {
+                case 'blockBoth': leftArmAngle = -0.8; rightArmAngle = 0.8; break;
+                case 'blockLeft': leftArmAngle = -1; break;
+                case 'blockRight': rightArmAngle = 1; break;
+                case 'attack':
+                    rightArmAngle = -0.5 - Math.sin((30 - char.stateTimer) / 30 * Math.PI) * 1.5;
+                    break;
+            }
+
+            ctx.save();
+            ctx.translate(-size * 0.22, size * 0.08);
+            ctx.rotate(leftArmAngle);
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(-armW/2, 0, armW, armL);
+            ctx.fillStyle = '#ffeaa7';
+            ctx.beginPath();
+            ctx.arc(0, armL + 5, armW * 0.7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            ctx.save();
+            ctx.translate(size * 0.22, size * 0.08);
+            ctx.rotate(rightArmAngle);
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(-armW/2, 0, armW, armL);
+            ctx.fillStyle = '#ffeaa7';
+            ctx.beginPath();
+            ctx.arc(0, armL + 5, armW * 0.7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // Head back
+            const headSize = size * 0.25;
+            ctx.fillStyle = '#ffeaa7';
+            ctx.fillRect(-size * 0.05, -size * 0.08, size * 0.1, size * 0.12);
+
+            ctx.fillStyle = hairColor;
+            ctx.beginPath();
+            ctx.ellipse(0, -size * 0.22, headSize * 1.1, headSize * 1.05, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            if (gender === 'female') {
+                ctx.beginPath();
+                ctx.moveTo(-headSize * 0.9, -size * 0.15);
+                ctx.quadraticCurveTo(-headSize * 1.3, size * 0.1, -headSize * 0.7, size * 0.5);
+                ctx.lineTo(-headSize * 0.4, size * 0.45);
+                ctx.quadraticCurveTo(-headSize * 0.9, size * 0, -headSize * 0.6, -size * 0.18);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(headSize * 0.9, -size * 0.15);
+                ctx.quadraticCurveTo(headSize * 1.3, size * 0.1, headSize * 0.7, size * 0.5);
+                ctx.lineTo(headSize * 0.4, size * 0.45);
+                ctx.quadraticCurveTo(headSize * 0.9, size * 0, headSize * 0.6, -size * 0.18);
+                ctx.fill();
+            } else {
+                for (let i = 0; i < 7; i++) {
+                    const angle = Math.PI + (i - 3) * 0.25;
+                    ctx.beginPath();
+                    ctx.moveTo(Math.cos(angle) * headSize * 0.6, -size * 0.22 + Math.sin(angle) * headSize * 0.6);
+                    ctx.lineTo(Math.cos(angle) * headSize * 1.5, -size * 0.22 + Math.sin(angle) * headSize * 1.3);
+                    ctx.lineTo(Math.cos(angle + 0.15) * headSize * 0.7, -size * 0.22 + Math.sin(angle + 0.15) * headSize * 0.7);
+                    ctx.fill();
+                }
+            }
+
+            ctx.fillStyle = primaryColor;
+            ctx.font = `bold ${Math.max(12, 16 * baseScale)}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.shadowColor = primaryColor;
+            ctx.shadowBlur = 10;
+            ctx.fillText(gameState.playerName, 0, -size * 0.55);
+            ctx.shadowBlur = 0;
+
+            ctx.restore();
+        }
+
+        function drawAnimeCharacter(char, isPlayer, theme) {
+            const pos = project(char.x, char.y, char.z);
+            if (!pos.visible) return;
+            
+            // 體積增加一倍：5.0 -> 原本是 2.5
+            const baseScale = pos.scale * 5.0;
+            if (baseScale < 0.05) return;
+
+            const gender = gameState.enemyGender;
+            const primaryColor = '#a29bfe';
+            const hairColor = gender === 'male' ? '#2d3436' : '#fd79a8';
+            
+            ctx.save();
+            ctx.translate(pos.x, pos.y);
+            
+            const size = 120 * baseScale;
+            
+            let offsetX = 0, offsetY = 0, bodyTilt = 0;
+            switch(char.state) {
+                case 'dodgeLeft': offsetX = -30 * baseScale; bodyTilt = -0.1; break;
+                case 'dodgeRight': offsetX = 30 * baseScale; bodyTilt = 0.1; break;
+                case 'duck': offsetY = 50 * baseScale; break;
+                case 'attack': bodyTilt = 0.15; break;
+            }
+            
+            ctx.translate(offsetX, offsetY);
+            ctx.rotate(bodyTilt);
+
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.beginPath();
+            ctx.ellipse(0, size * 0.85, size * 0.4, size * 0.1, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Legs
+            ctx.fillStyle = '#1a1a2e';
+            const legW = size * 0.12;
+            const legH = size * 0.4;
+            let legOffset = 0;
+            if (char.state === 'walking') {
+                legOffset = Math.sin(char.animFrame) * 5;
+            }
+            
+            ctx.save();
+            ctx.translate(-size * 0.12, size * 0.42);
+            ctx.rotate(legOffset * 0.02);
+            ctx.fillRect(-legW/2, 0, legW, legH);
+            ctx.fillStyle = primaryColor;
+            ctx.fillRect(-legW/2 + 2, legH * 0.3, 3, legH * 0.5);
+            ctx.restore();
+            
+            ctx.save();
+            ctx.translate(size * 0.12, size * 0.42);
+            ctx.rotate(-legOffset * 0.02);
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(-legW/2, 0, legW, legH);
+            ctx.fillStyle = primaryColor;
+            ctx.fillRect(legW/2 - 5, legH * 0.3, 3, legH * 0.5);
+            ctx.restore();
+
+            // Body
+            ctx.fillStyle = '#1a1a2e';
+            ctx.beginPath();
+            if (gender === 'female') {
+                ctx.moveTo(-size * 0.18, -size * 0.05);
+                ctx.quadraticCurveTo(-size * 0.22, size * 0.15, -size * 0.15, size * 0.28);
+                ctx.lineTo(-size * 0.22, size * 0.45);
+                ctx.lineTo(size * 0.22, size * 0.45);
+                ctx.lineTo(size * 0.15, size * 0.28);
+                ctx.quadraticCurveTo(size * 0.22, size * 0.15, size * 0.18, -size * 0.05);
+                ctx.closePath();
+            } else {
+                ctx.moveTo(-size * 0.22, -size * 0.05);
+                ctx.lineTo(-size * 0.18, size * 0.32);
+                ctx.lineTo(-size * 0.12, size * 0.45);
+                ctx.lineTo(size * 0.12, size * 0.45);
+                ctx.lineTo(size * 0.18, size * 0.32);
+                ctx.lineTo(size * 0.22, -size * 0.05);
+                ctx.closePath();
+            }
+            ctx.fill();
+            ctx.strokeStyle = primaryColor;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            ctx.strokeStyle = primaryColor;
+            ctx.lineWidth = 3;
+            ctx.shadowColor = primaryColor;
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.moveTo(-size * 0.08, size * 0.05);
+            ctx.lineTo(-size * 0.08, size * 0.32);
+            ctx.moveTo(size * 0.08, size * 0.05);
+            ctx.lineTo(size * 0.08, size * 0.32);
+            ctx.moveTo(-size * 0.12, size * 0.18);
+            ctx.lineTo(size * 0.12, size * 0.18);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Arms
+            const armW = size * 0.08;
+            const armL = size * 0.32;
+            let leftArmAngle = -0.3;
+            let rightArmAngle = 0.3;
+            
+            switch(char.state) {
+                case 'blockBoth': leftArmAngle = 1.2; rightArmAngle = -1.2; break;
+                case 'blockLeft': leftArmAngle = 1.3; break;
+                case 'blockRight': rightArmAngle = -1.3; break;
+                case 'attack':
+                    const prog = (35 - char.stateTimer) / 35;
+                    if (prog < 0.4) {
+                        rightArmAngle = 0.5 + prog * 2;
+                    } else {
+                        rightArmAngle = -0.8 - (prog - 0.4) * 2;
+                    }
+                    break;
+                case 'walking':
+                    leftArmAngle = -0.3 + Math.sin(char.animFrame) * 0.2;
+                    rightArmAngle = 0.3 - Math.sin(char.animFrame) * 0.2;
+                    break;
+            }
+
+            ctx.save();
+            ctx.translate(-size * 0.22, 0);
+            ctx.rotate(leftArmAngle);
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(-armW/2, 0, armW, armL);
+            ctx.fillStyle = primaryColor;
+            ctx.fillRect(-armW/2 + 1, armL * 0.2, 2, armL * 0.6);
+            ctx.fillStyle = '#ffeaa7';
+            ctx.beginPath();
+            ctx.arc(0, armL + 6, armW * 0.8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            ctx.save();
+            ctx.translate(size * 0.22, 0);
+            ctx.rotate(rightArmAngle);
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(-armW/2, 0, armW, armL);
+            ctx.fillStyle = primaryColor;
+            ctx.fillRect(armW/2 - 3, armL * 0.2, 2, armL * 0.6);
+            ctx.fillStyle = '#ffeaa7';
+            ctx.beginPath();
+            ctx.arc(0, armL + 6, armW * 0.8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // Head
+            const headSize = size * 0.26;
+            ctx.fillStyle = '#ffeaa7';
+            ctx.fillRect(-size * 0.05, -size * 0.12, size * 0.1, size * 0.1);
+
+            ctx.fillStyle = '#ffeaa7';
+            ctx.beginPath();
+            ctx.ellipse(0, -size * 0.26, headSize * 0.9, headSize * 1.05, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = hairColor;
+            ctx.beginPath();
+            ctx.ellipse(0, -size * 0.32, headSize * 1.1, headSize * 0.95, 0, Math.PI, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            if (gender === 'female') {
+                ctx.moveTo(-headSize * 0.95, -size * 0.28);
+                ctx.quadraticCurveTo(-headSize * 0.6, -size * 0.15, -headSize * 0.35, -size * 0.2);
+                ctx.quadraticCurveTo(-headSize * 0.15, -size * 0.1, headSize * 0.05, -size * 0.18);
+                ctx.quadraticCurveTo(headSize * 0.35, -size * 0.12, headSize * 0.55, -size * 0.22);
+                ctx.quadraticCurveTo(headSize * 0.8, -size * 0.28, headSize * 0.95, -size * 0.32);
+                ctx.lineTo(headSize * 0.95, -size * 0.45);
+                ctx.lineTo(-headSize * 0.95, -size * 0.45);
+                ctx.closePath();
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(-headSize, -size * 0.28);
+                ctx.quadraticCurveTo(-headSize * 1.15, -size * 0.05, -headSize * 0.85, size * 0.25);
+                ctx.lineTo(-headSize * 0.55, size * 0.2);
+                ctx.quadraticCurveTo(-headSize * 0.75, -size * 0.05, -headSize * 0.75, -size * 0.25);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(headSize, -size * 0.28);
+                ctx.quadraticCurveTo(headSize * 1.15, -size * 0.05, headSize * 0.85, size * 0.25);
+                ctx.lineTo(headSize * 0.55, size * 0.2);
+                ctx.quadraticCurveTo(headSize * 0.75, -size * 0.05, headSize * 0.75, -size * 0.25);
+                ctx.fill();
+            } else {
+                for (let i = 0; i < 8; i++) {
+                    const bx = -headSize * 0.75 + i * headSize * 0.22;
+                    ctx.moveTo(bx, -size * 0.42);
+                    ctx.lineTo(bx + headSize * 0.12, -size * 0.15 - (i % 2) * size * 0.05);
+                    ctx.lineTo(bx + headSize * 0.22, -size * 0.42);
+                }
+                ctx.fill();
+            }
+
+            // Eyes
+            const eyeY = -size * 0.28;
+            const eyeSpacing = headSize * 0.38;
+            const eyeWidth = headSize * 0.32;
+            const eyeHeight = headSize * 0.42;
+            
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.ellipse(-eyeSpacing, eyeY, eyeWidth, eyeHeight, 0, 0, Math.PI * 2);
+            ctx.ellipse(eyeSpacing, eyeY, eyeWidth, eyeHeight, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#74b9ff';
+            ctx.beginPath();
+            ctx.ellipse(-eyeSpacing, eyeY + 3, eyeWidth * 0.72, eyeHeight * 0.82, 0, 0, Math.PI * 2);
+            ctx.ellipse(eyeSpacing, eyeY + 3, eyeWidth * 0.72, eyeHeight * 0.82, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.ellipse(-eyeSpacing, eyeY + 4, eyeWidth * 0.38, eyeHeight * 0.5, 0, 0, Math.PI * 2);
+            ctx.ellipse(eyeSpacing, eyeY + 4, eyeWidth * 0.38, eyeHeight * 0.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(-eyeSpacing - eyeWidth * 0.25, eyeY - eyeHeight * 0.15, eyeWidth * 0.22, 0, Math.PI * 2);
+            ctx.arc(eyeSpacing - eyeWidth * 0.25, eyeY - eyeHeight * 0.15, eyeWidth * 0.22, 0, Math.PI * 2);
+            ctx.arc(-eyeSpacing + eyeWidth * 0.15, eyeY + eyeHeight * 0.25, eyeWidth * 0.12, 0, Math.PI * 2);
+            ctx.arc(eyeSpacing + eyeWidth * 0.15, eyeY + eyeHeight * 0.25, eyeWidth * 0.12, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = hairColor;
+            ctx.lineWidth = Math.max(2, 4 * baseScale);
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            if (char.state === 'attack') {
+                ctx.moveTo(-eyeSpacing - eyeWidth * 0.6, eyeY - eyeHeight * 0.9);
+                ctx.lineTo(-eyeSpacing + eyeWidth * 0.5, eyeY - eyeHeight * 1.2);
+                ctx.moveTo(eyeSpacing - eyeWidth * 0.5, eyeY - eyeHeight * 1.2);
+                ctx.lineTo(eyeSpacing + eyeWidth * 0.6, eyeY - eyeHeight * 0.9);
+            } else {
+                ctx.moveTo(-eyeSpacing - eyeWidth * 0.7, eyeY - eyeHeight * 1.1);
+                ctx.quadraticCurveTo(-eyeSpacing, eyeY - eyeHeight * 1.3, -eyeSpacing + eyeWidth * 0.5, eyeY - eyeHeight * 1.1);
+                ctx.moveTo(eyeSpacing - eyeWidth * 0.5, eyeY - eyeHeight * 1.1);
+                ctx.quadraticCurveTo(eyeSpacing, eyeY - eyeHeight * 1.3, eyeSpacing + eyeWidth * 0.7, eyeY - eyeHeight * 1.1);
+            }
+            ctx.stroke();
+            
+            ctx.fillStyle = '#f0c070';
+            ctx.beginPath();
+            ctx.moveTo(0, -size * 0.2);
+            ctx.lineTo(-4 * baseScale, -size * 0.15);
+            ctx.lineTo(4 * baseScale, -size * 0.15);
+            ctx.fill();
+            
+            ctx.strokeStyle = '#d35400';
+            ctx.lineWidth = Math.max(1, 2 * baseScale);
+            ctx.beginPath();
+            if (char.state === 'attack') {
+                ctx.moveTo(-headSize * 0.25, -size * 0.1);
+                ctx.quadraticCurveTo(0, -size * 0.05, headSize * 0.25, -size * 0.1);
+                ctx.stroke();
+                ctx.fillStyle = '#8B0000';
+                ctx.fill();
+            } else {
+                ctx.moveTo(-headSize * 0.18, -size * 0.1);
+                ctx.quadraticCurveTo(0, -size * 0.08, headSize * 0.18, -size * 0.1);
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = 'rgba(255, 150, 150, 0.4)';
+            ctx.beginPath();
+            ctx.ellipse(-eyeSpacing - eyeWidth * 0.2, eyeY + eyeHeight * 0.9, headSize * 0.14, headSize * 0.07, 0, 0, Math.PI * 2);
+            ctx.ellipse(eyeSpacing + eyeWidth * 0.2, eyeY + eyeHeight * 0.9, headSize * 0.14, headSize * 0.07, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Mask
+            const maskHealth = gameState.enemyMaskHealth;
+            if (maskHealth > 0) {
+                drawDetailedMask(0, -size * 0.12, headSize, size, maskHealth, baseScale);
+            }
+
+            // Name
+            ctx.fillStyle = primaryColor;
+            ctx.font = `bold ${Math.max(12, 18 * baseScale)}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.shadowColor = primaryColor;
+            ctx.shadowBlur = 10;
+            ctx.fillText(document.getElementById('enemyNameDisplay').textContent, 0, -size * 0.58);
+            ctx.shadowBlur = 0;
+
+            ctx.restore();
+        }
+
+        function drawDetailedMask(x, y, headSize, size, health, scale) {
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#cccccc';
+            ctx.lineWidth = Math.max(1, 2 * scale);
+            
+            ctx.beginPath();
+            ctx.moveTo(x - headSize * 0.75, y - headSize * 0.25);
+            ctx.quadraticCurveTo(x - headSize * 0.85, y + headSize * 0.15, x - headSize * 0.6, y + headSize * 0.45);
+            ctx.quadraticCurveTo(x, y + headSize * 0.65, x + headSize * 0.6, y + headSize * 0.45);
+            ctx.quadraticCurveTo(x + headSize * 0.85, y + headSize * 0.15, x + headSize * 0.75, y - headSize * 0.25);
+            ctx.quadraticCurveTo(x, y - headSize * 0.1, x - headSize * 0.75, y - headSize * 0.25);
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = Math.max(1, 1.5 * scale);
+            ctx.beginPath();
+            ctx.moveTo(x - headSize * 0.65, y + headSize * 0.05);
+            ctx.quadraticCurveTo(x, y + headSize * 0.12, x + headSize * 0.65, y + headSize * 0.05);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x - headSize * 0.6, y + headSize * 0.22);
+            ctx.quadraticCurveTo(x, y + headSize * 0.28, x + headSize * 0.6, y + headSize * 0.22);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x - headSize * 0.55, y + headSize * 0.35);
+            ctx.quadraticCurveTo(x, y + headSize * 0.42, x + headSize * 0.55, y + headSize * 0.35);
+            ctx.stroke();
+
+            ctx.strokeStyle = '#aaaaaa';
+            ctx.lineWidth = Math.max(2, 3 * scale);
+            ctx.beginPath();
+            ctx.moveTo(x - headSize * 0.35, y - headSize * 0.15);
+            ctx.quadraticCurveTo(x, y - headSize * 0.22, x + headSize * 0.35, y - headSize * 0.15);
+            ctx.stroke();
+
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = Math.max(2, 4 * scale);
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(x - headSize * 0.72, y - headSize * 0.1);
+            ctx.quadraticCurveTo(x - headSize * 1.1, y - headSize * 0.2, x - headSize * 1.05, y - headSize * 0.55);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x + headSize * 0.72, y - headSize * 0.1);
+            ctx.quadraticCurveTo(x + headSize * 1.1, y - headSize * 0.2, x + headSize * 1.05, y - headSize * 0.55);
+            ctx.stroke();
+
+            ctx.fillStyle = 'rgba(0,0,0,0.1)';
+            ctx.beginPath();
+            ctx.ellipse(x, y + headSize * 0.55, headSize * 0.5, headSize * 0.08, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Damage effects
+            if (health < 80) {
+                ctx.strokeStyle = '#ff6b6b';
+                ctx.lineWidth = Math.max(1, 2 * scale);
+                ctx.beginPath();
+                ctx.moveTo(x - headSize * 0.3, y - headSize * 0.1);
+                ctx.lineTo(x - headSize * 0.15, y + headSize * 0.2);
+                ctx.lineTo(x - headSize * 0.35, y + headSize * 0.35);
+                ctx.stroke();
+            }
+            
+            if (health < 60) {
+                ctx.beginPath();
+                ctx.moveTo(x + headSize * 0.2, y);
+                ctx.lineTo(x + headSize * 0.35, y + headSize * 0.25);
+                ctx.lineTo(x + headSize * 0.15, y + headSize * 0.4);
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(255, 100, 100, 0.3)';
+                ctx.beginPath();
+                ctx.ellipse(x + headSize * 0.25, y + headSize * 0.2, headSize * 0.08, headSize * 0.05, 0.3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            if (health < 40) {
+                ctx.strokeStyle = '#ff4757';
+                ctx.lineWidth = Math.max(1, 2.5 * scale);
+                ctx.beginPath();
+                ctx.moveTo(x, y - headSize * 0.05);
+                ctx.lineTo(x + headSize * 0.1, y + headSize * 0.15);
+                ctx.lineTo(x - headSize * 0.05, y + headSize * 0.3);
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(255, 71, 87, 0.4)';
+                ctx.beginPath();
+                ctx.ellipse(x - headSize * 0.15, y + headSize * 0.15, headSize * 0.12, headSize * 0.08, -0.2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            if (health < 20) {
+                ctx.strokeStyle = '#ff0000';
+                ctx.lineWidth = Math.max(1, 3 * scale);
+                ctx.beginPath();
+                ctx.moveTo(x - headSize * 0.4, y + headSize * 0.1);
+                ctx.lineTo(x - headSize * 0.2, y + headSize * 0.35);
+                ctx.moveTo(x + headSize * 0.1, y + headSize * 0.05);
+                ctx.lineTo(x + headSize * 0.3, y + headSize * 0.3);
+                ctx.stroke();
+                
+                ctx.save();
+                ctx.translate(x + headSize * 0.4, y + headSize * 0.3);
+                ctx.rotate(Math.sin(Date.now() / 100) * 0.2 + 0.3);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(headSize * 0.25, headSize * 0.1);
+                ctx.lineTo(headSize * 0.2, headSize * 0.25);
+                ctx.lineTo(-headSize * 0.05, headSize * 0.15);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = '#ccc';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                ctx.restore();
+                
+                ctx.fillStyle = 'rgba(200, 0, 0, 0.3)';
+                ctx.beginPath();
+                ctx.arc(x - headSize * 0.25, y + headSize * 0.25, headSize * 0.06, 0, Math.PI * 2);
+                ctx.arc(x + headSize * 0.2, y + headSize * 0.2, headSize * 0.05, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function drawEffects(theme) {
+            if (player.state === 'attack' && player.stateTimer > 10) {
+                drawAttackEffect(player, true);
+            }
+            if (enemy.state === 'attack' && enemy.stateTimer > 10) {
+                drawAttackEffect(enemy, false);
+            }
+
+            if (player.state.startsWith('block')) {
+                drawBlockEffect(player, true);
+            }
+            if (enemy.state.startsWith('block')) {
+                drawBlockEffect(enemy, false);
+            }
+
+            if (player.state.startsWith('dodge')) {
+                drawDodgeEffect(player, true);
+            }
+            
+            const dist = getDistance();
+            if (dist < 5 && enemy.state === 'attack') {
+                drawDangerIndicator();
+            }
+        }
+
+        function drawAttackEffect(char, isPlayer) {
+            const pos = project(char.x, char.y, char.z);
+            if (!pos.visible) return;
+            
+            const color = isPlayer ? '#ff6b9d' : '#a29bfe';
+            
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.globalAlpha = 0.8;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 20;
+            
+            for (let i = 0; i < 10; i++) {
+                const angle = (isPlayer ? 0 : Math.PI) + (i - 5) * 0.12;
+                const length = 40 + Math.random() * 60;
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y - 40 * pos.scale);
+                ctx.lineTo(
+                    pos.x + Math.cos(angle) * length * pos.scale,
+                    pos.y - 40 * pos.scale + Math.sin(angle) * length * 0.5 * pos.scale
+                );
+                ctx.stroke();
+            }
+            
+            if (char.stateTimer < 20) {
+                ctx.beginPath();
+                for (let i = 0; i < 15; i++) {
+                    const angle = (i / 15) * Math.PI * 2;
+                    const r1 = 25 * pos.scale;
+                    const r2 = (50 + Math.random() * 30) * pos.scale;
+                    ctx.moveTo(pos.x + Math.cos(angle) * r1, pos.y - 40 * pos.scale + Math.sin(angle) * r1);
+                    ctx.lineTo(pos.x + Math.cos(angle) * r2, pos.y - 40 * pos.scale + Math.sin(angle) * r2);
+                }
+                ctx.stroke();
+            }
+            
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = 1;
+        }
+
+        function drawBlockEffect(char, isPlayer) {
+            const pos = project(char.x, char.y, char.z);
+            if (!pos.visible) return;
+            
+            const color = isPlayer ? 'rgba(255, 107, 157, 0.4)' : 'rgba(162, 155, 254, 0.4)';
+            
+            ctx.fillStyle = color;
+            ctx.shadowColor = isPlayer ? '#ff6b9d' : '#a29bfe';
+            ctx.shadowBlur = 30;
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y - 30 * pos.scale, 60 * pos.scale, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = isPlayer ? '#ff6b9d' : '#a29bfe';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y - 30 * pos.scale, 65 * pos.scale, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            ctx.shadowBlur = 0;
+        }
+
+        function drawDodgeEffect(char, isPlayer) {
+            const pos = project(char.x, char.y, char.z);
+            if (!pos.visible) return;
+            
+            const color = isPlayer ? '#ff6b9d' : '#a29bfe';
+            
+            ctx.globalAlpha = 0.3;
+            ctx.fillStyle = color;
+            const offset = char.state === 'dodgeLeft' ? 40 * pos.scale : -40 * pos.scale;
+            ctx.beginPath();
+            ctx.ellipse(pos.x + offset, pos.y, 25 * pos.scale, 70 * pos.scale, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+
+        function drawDangerIndicator() {
+            ctx.strokeStyle = '#ff0000';
+            ctx.lineWidth = 5;
+            ctx.globalAlpha = 0.3 + Math.sin(Date.now() / 100) * 0.2;
+            ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+            ctx.globalAlpha = 1;
+        }
+
+        init();
+    </script>
+
+
+</body></html>
